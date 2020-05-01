@@ -1,9 +1,5 @@
-import 'dart:async';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,124 +13,144 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(),
+      home: PinList(children: <Widget>[
+        Container(
+          height: 50.0,
+          color: Colors.red,
+          child: Text("A"),
+        ),
+        Container(
+          height: 50.0,
+          color: Colors.amber,
+          child: Text("B"),
+
+        ),
+        Container(
+          height: 50.0,
+          color: Colors.green,
+          child: Text("C"),
+
+        ),
+        Container(
+          height: 50.0,
+          color: Colors.blue,
+          child: Text("D"),
+
+        ),
+        Container(
+          height: 50.0,
+          color: Colors.purple,
+          child: Text("E"),
+
+        )
+      ],),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePageState createState() => MyHomePageState();
+class PinList extends StatefulWidget {
+  final List<Widget> children;
+  List<double> widgetHeightList = List();
+  List<Function> animFunctions = List();
+  int pinned;
+  PinList({Key key, this.children, this.pinned}) : super(key: key);
+  List<int> originalIndexes;
+
+  @override
+  PinListState createState() => PinListState();
 }
 
-class MyHomePageState extends State<MyHomePage> {
-  List widgetHeightList = [0, 0, 0, 0, 0, 0];
-  GlobalKey<AnimatedListState> listKey = GlobalKey<AnimatedListState>();
-  List<GlobalKey> globalKeys = List();
-  List<Function> animationFunctionsList = List();
-  List widgetList = [
-    Text("red"), Text("orange"), Text("cyan"), Text("yellow"), Text("magenta"), Text("turquoise")
-  ];
-  List originalIndexList = [0, 1, 2, 3, 4, 5];
-  int pinned;
+class PinListState extends State<PinList> {
+
+  addFunction(Function function) {
+    print("event");
+    widget.animFunctions.add(function);
+  }
+
+  callFunctions(int index) {
+      print(widget.animFunctions.length);
+      if (widget.pinned == null || index != 0) {
+        widget.animFunctions.sublist(0, index).forEach((function) {
+            function(50.0, false);
+        });
+        Future.delayed(Duration(seconds: 1)).then((_) {
+          setState(() {
+            widget.pinned = widget.originalIndexes[index];
+            int moveIndex = widget.originalIndexes[index];
+            widget.originalIndexes.removeAt(index);
+            widget.originalIndexes.insert(0, moveIndex);
+
+            Widget moveWidget = widget.children[index];
+            print(moveWidget);
+            widget.children.removeAt(index);
+            widget.children.insert(0, moveWidget);
+            print(widget.originalIndexes);
+          });
+        });
+      } else {
+        print("this gets run");
+        widget.animFunctions.sublist(1, widget.originalIndexes[index]+1).forEach((function) {
+          function(50.0, true);
+        });
+        Future.delayed(Duration(seconds: 1)).then((_) {
+          setState(() {
+            widget.pinned = null;
+            int moveIndex = widget.originalIndexes[0];
+            widget.originalIndexes.removeAt(0);
+            widget.originalIndexes.insert(moveIndex, moveIndex);
+
+            Widget moveWidget = widget.children[0];
+            print(moveWidget);
+            widget.children.removeAt(0);
+            widget.children.insert(moveIndex, moveWidget);
+            print(widget.originalIndexes);
+          });
+        });
+      }
+  }
+
+  getData(int index) {
+    double distance;
+    if (widget.pinned == widget.originalIndexes[index]) {
+      distance = -widget.pinned * 50.0;
+    } else {
+      distance = index * 50.0;
+    }
+    return [distance, widget.originalIndexes[index]];
+  }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      globalKeys.asMap().forEach((index, element) {
-        widgetHeightList[index] = element.currentContext.findRenderObject().paintBounds.height;
-      });
-    });
-  }
-
-  addWidget(Function function, GlobalKey key) {
-    globalKeys.add(key);
-    animationFunctionsList.add(function);
-  }
-
-  callFunction(int index) {
-      double widgetHeight = 0.0;
-      if (pinned != null && index == 0) {
-        widgetHeight = 0 - widgetHeightList[index];
-        animationFunctionsList.sublist(1, originalIndexList[0]).forEach((function) {
-          function(widgetHeight);
-        });
-      } else {
-        widgetHeight = widgetHeightList[index];
-        animationFunctionsList.sublist(0, index).forEach((function) {
-          function(widgetHeight);
-        });
-      }
-      Future.delayed(Duration(milliseconds: 300)).then((value) {
-        if (pinned == null || index != 0) {
-          Widget movableWidget = widgetList[index];
-          widgetList.removeAt(index);
-          widgetList.insert(0, movableWidget);
-          double movableHeight = widgetHeightList[index];
-          widgetHeightList.removeAt(index);
-          widgetHeightList.insert(0, movableHeight);
-          int movableIndex = originalIndexList[index];
-          originalIndexList.removeAt(index);
-          originalIndexList.insert(0, movableIndex);
-          pinned = originalIndexList[0];
-        } else {
-          int originalIndex = originalIndexList[index];
-          int removable = originalIndexList[originalIndex];
-
-          print(globalKeys);
-          globalKeys.removeAt(removable);
-          animationFunctionsList.removeAt(removable);
-          print(globalKeys);
-          pinned = null;
-
-          Widget movableWidget = widgetList[0];
-          widgetList.removeAt(0);
-          widgetList.insert(originalIndex, movableWidget);
-          double movableHeight = widgetHeightList[0];
-          widgetHeightList.removeAt(0);
-          widgetHeightList.insert(originalIndex, movableHeight);
-          int movableIndex = originalIndexList[0];
-          originalIndexList.removeAt(0);
-          originalIndexList.insert(originalIndex, movableIndex);
-        }
-      });
-  }
-
-  int getTrueIndex(int index) {
-    return originalIndexList[index];
-  }
-
-  double getDistance(int index) {
-    double travelDistance = 0.0;
-    if (pinned != null && index == 0) {
-      index = pinned;
+    for (Widget w in widget.children) {
+      w.
     }
-    widgetHeightList.sublist(0, index).forEach((element) {
-      travelDistance += element;
-    });
-    return travelDistance;
+    widget.originalIndexes = Iterable<int>.generate(widget.children.length).toList();
+    if (widget.pinned != null) {
+      int moveIndex = widget.originalIndexes[widget.pinned];
+      widget.originalIndexes.removeAt(widget.pinned);
+      widget.originalIndexes.insert(0, moveIndex);
+
+      Widget moveWidget = widget.children[widget.pinned];
+      print(moveWidget);
+      widget.children.removeAt(widget.pinned);
+      widget.children.insert(0, moveWidget);
+      print(widget.originalIndexes);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Example"),
-      ),
-      body: AnimatedList(
-        shrinkWrap: true,
-        key: listKey,
-        initialItemCount: widgetHeightList.length,
-        itemBuilder: (BuildContext context, int index, Animation<double> animation) {
-          return PinTile(
-            globalKeys: globalKeys,
-            listKey: listKey,
-            index: index,
-            addWidget: addWidget,
-            callFunction: callFunction,
-            getTrueIndex: getTrueIndex,
-            getDistance: getDistance,
-            child: widgetList[index]
+      body: ListView.builder(
+        itemCount: widget.children.length,
+        itemBuilder: (BuildContext context, int index) {
+          return PinWidget(
+              child: widget.children[index],
+              index: index,
+              addFunction: addFunction,
+              callFunctions: callFunctions,
+              getData: getData,
           );
         },
       ),
@@ -142,99 +158,65 @@ class MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class PinTile extends StatefulWidget {
-  final listKey;
-  final globalKeys;
-  final index;
-  final Function(Function function, GlobalKey key) addWidget;
-  final Function(int index) callFunction;
-  final Function(int index) getTrueIndex;
-  final Function(int index) getDistance;
+class PinWidget extends StatefulWidget {
   final Widget child;
-
-  PinTile({Key key, this.listKey, this.globalKeys,
-    this.index, this.addWidget, this.callFunction, this.getTrueIndex,
-    this.child, this.getDistance}) : super(key: key);
-
-  PinTileState createState() => PinTileState();
+  final int index;
+  final Function(Function function) addFunction;
+  final Function(int index) callFunctions;
+  final Function(int index) getData;
+  PinWidget({Key key, this.child, this.index, this.addFunction,
+    this.getData, this.callFunctions}): super(key: key);
+  PinWidgetState createState() => PinWidgetState();
 }
 
-class PinTileState extends State<PinTile> with SingleTickerProviderStateMixin {
-  GlobalKey key = GlobalKey();
-  double opacity = 1.0;
+class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixin {
   AnimationController animationController;
-  Animation<double> animation;
+  double distance = 0.0;
 
-  runAnimation(double height) {
-    // instantiate the animation now that you know the bounds it should have
-    animation = Tween(begin: 0.0, end: height).animate(animationController);
-    animationController.forward().then((_) => animationController.reset());
+  move(double height, bool isPinned) {
+    if (isPinned) {
+      distance = height;
+    } else {
+      distance = -height;
+    }
+    animationController.forward();
+    Future.delayed(Duration(seconds: 1)).then((_) {
+      animationController.reset();
+    });
   }
 
   @override
   void initState() {
     super.initState();
-    print(widget.child);
     animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 300)
+      duration: Duration(seconds: 1)
     );
-    widget.addWidget(runAnimation, key);
-    animation = Tween(begin: 0.0, end: 0.0).animate(animationController);
+    widget.addFunction(move);
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: animationController,
-      builder: (BuildContext context, child) => Transform.translate(
-        offset: Offset(0.0, animation.value),
-        child: child,
-      ),
-      child: Opacity(
-          key: key,
-          opacity: opacity,
-          child: GestureDetector(
-            child: widget.child,
-            onTap: () {
-              int trueIndex = widget.getTrueIndex(widget.index);
-              widget.callFunction(widget.index);
-              if (widget.index != 0 || widget.index == 0 && trueIndex == 0) {
-                AnimatedListState animatedList = widget.listKey.currentState;
-                double travelDistance = widget.getDistance(widget.index);
-                double widgetHeight = context.findRenderObject().paintBounds.height;
-                animatedList.removeItem(widget.globalKeys.length - 1, (context, animation) {
-                  opacity = 0.0;
-                  animation.addListener(() {
-                    if (animation.isDismissed) {
-                      setState(() {
-                        opacity = 1.0;
-                      });
-                    }
+        animation: animationController,
+        builder: (BuildContext context, Widget child) {
+          return Transform.translate(
+              offset: Offset(1.0, -distance * animationController.value),
+              child: GestureDetector(
+                child: widget.child,
+                onTap: () {
+                  distance = widget.getData(widget.index)[0];
+                  print(distance);
+                  int originalIndex = widget.getData(widget.index)[1];
+                  widget.callFunctions(widget.index);
+                  animationController.forward();
+                  Future.delayed(Duration(seconds: 1)).then((_) {
+                    animationController.reset();
                   });
-                  return Transform(
-                    transform: Matrix4.identity()
-                      ..translate(1.0, ( -widgetHeight * (widget.globalKeys.length - widget.index) - travelDistance + travelDistance * animation.value) * 1),
-                    child: widget.child,
-                  );
-                });
-                animatedList.insertItem(0);
-              } else {
-                AnimatedListState animatedList = widget.listKey.currentState;
-                double travelDistance = widget.getDistance(widget.index);
-                double widgetHeight = context.findRenderObject().paintBounds.height;
-                animatedList.removeItem(0, (context, animation) {
-                  return Transform(
-                    transform: Matrix4.identity()
-                      ..translate(1.0, travelDistance - travelDistance * animation.value),
-                    child: widget.child,
-                  );
-                });
-                animatedList.insertItem(trueIndex);
-              }
-            },
-          )
-      ),
-    );
+                },
+              )
+          );
+        });
   }
 }
+
