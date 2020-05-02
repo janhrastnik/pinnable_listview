@@ -1,4 +1,4 @@
-library pinnablelistview;
+library pinnable_listview;
 import 'package:flutter/material.dart';
 
 class PinnableListView extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:pinnablelistview/pinlistview.dart';
+import 'package:pinnablelistview/pinnable_listview.dart';
 
 void main() {
   runApp(MyApp());
@@ -57,11 +57,6 @@ class MyApp extends StatelessWidget {
         body: PinnableListView(
           pinController: pinController,
           children: Iterable<int>.generate(5).map((i) => tileWidget(i)).toList()
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            pinController.pin(4);
-          },
         ),
       )
     );
