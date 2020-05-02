@@ -1,7 +1,7 @@
-name: pinlistview
-description: A new Flutter package.
+name: pinnablelistview
+description: A ListView widget capable of pinning a child to the top of the list.
 version: 0.0.1
-author:
+author: Jan Hrastnik
 homepage:
 
 environment:
