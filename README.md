@@ -1,4 +1,4 @@
-# pinlistview
+# PinnableListView
 A Flutter ListView widget that allows pinning a ListView child to the top of the list.
 ## Demo
 
