@@ -8,8 +8,7 @@ class PinnableListView extends StatefulWidget {
   List<Function> pinFunctions = List();
   List<int> originalIndexes = List();
   PinController pinController;
-  int pinned;
-  PinnableListView({Key key, @required this.children, this.pinned, @required this.pinController}) : super(key: key);
+  PinnableListView({Key key, @required this.children, @required this.pinController}) : super(key: key);
 
   @override
   PinnableListViewState createState() => PinnableListViewState();
@@ -23,40 +22,38 @@ class PinnableListViewState extends State<PinnableListView> {
     widget.pinFunctions.add(pinFunction);
   }
 
-  callFunctions(int index) {
-    if (widget.pinned == null || index != 0) {
+  Future<void> callFunctions(int index) async {
+    if (widget.pinController.pinned == null || index != 0) {
       widget.animFunctions.sublist(0, index).forEach((function) {
         double widgetHeight = widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
         function(widgetHeight, false);
       });
-      Future.delayed(Duration(milliseconds: 600)).then((_) {
-        setState(() {
-          widget.pinned = widget.originalIndexes[index];
-          int moveIndex = widget.originalIndexes[index];
-          widget.originalIndexes.removeAt(index);
-          widget.originalIndexes.insert(0, moveIndex);
+      await Future.delayed(Duration(milliseconds: 600));
+      setState(() {
+        widget.pinController.pinned = widget.originalIndexes[index];
+        int moveIndex = widget.originalIndexes[index];
+        widget.originalIndexes.removeAt(index);
+        widget.originalIndexes.insert(0, moveIndex);
 
-          Widget moveWidget = widget.children[index];
-          widget.children.removeAt(index);
-          widget.children.insert(0, moveWidget);
-        });
+        Widget moveWidget = widget.children[index];
+        widget.children.removeAt(index);
+        widget.children.insert(0, moveWidget);
       });
     } else {
       widget.animFunctions.sublist(1, widget.originalIndexes[index]+1).forEach((function) {
         double widgetHeight = widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
         function(widgetHeight, true);
       });
-      Future.delayed(Duration(milliseconds: 600)).then((_) {
-        setState(() {
-          widget.pinned = null;
-          int moveIndex = widget.originalIndexes[0];
-          widget.originalIndexes.removeAt(0);
-          widget.originalIndexes.insert(moveIndex, moveIndex);
+      await Future.delayed(Duration(milliseconds: 600));
+      setState(() {
+        widget.pinController.pinned = null;
+        int moveIndex = widget.originalIndexes[0];
+        widget.originalIndexes.removeAt(0);
+        widget.originalIndexes.insert(moveIndex, moveIndex);
 
-          Widget moveWidget = widget.children[0];
-          widget.children.removeAt(0);
-          widget.children.insert(moveIndex, moveWidget);
-        });
+        Widget moveWidget = widget.children[0];
+        widget.children.removeAt(0);
+        widget.children.insert(moveIndex, moveWidget);
       });
     }
   }
@@ -64,8 +61,8 @@ class PinnableListViewState extends State<PinnableListView> {
   getData(int index) {
     double distance;
     double widgetHeight = widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
-    if (widget.pinned == widget.originalIndexes[index]) {
-      distance = -widget.pinned * widgetHeight;
+    if (widget.pinController.pinned == widget.originalIndexes[index]) {
+      distance = -widget.pinController.pinned * widgetHeight;
     } else {
       distance = index * widgetHeight;
     }
@@ -73,12 +70,12 @@ class PinnableListViewState extends State<PinnableListView> {
   }
 
   setPin() {
-    int moveIndex = widget.originalIndexes[widget.pinned];
-    widget.originalIndexes.removeAt(widget.pinned);
+    int moveIndex = widget.originalIndexes[widget.pinController.pinned];
+    widget.originalIndexes.removeAt(widget.pinController.pinned);
     widget.originalIndexes.insert(0, moveIndex);
 
-    Widget moveWidget = widget.children[widget.pinned];
-    widget.children.removeAt(widget.pinned);
+    Widget moveWidget = widget.children[widget.pinController.pinned];
+    widget.children.removeAt(widget.pinController.pinned);
     widget.children.insert(0, moveWidget);
   }
 
@@ -91,7 +88,7 @@ class PinnableListViewState extends State<PinnableListView> {
       widget.pinFunctions[trueIndex]();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.pinned != null) {
+      if (widget.pinController.pinned != null) {
         setPin();
       }
     });
@@ -182,14 +179,9 @@ class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixi
         builder: (BuildContext context, Widget child) {
           return Transform.translate(
               offset: Offset(1.0, -distance * tween.value),
-              child: GestureDetector(
-                child: Container(
-                  child: widget.child,
-                  key: key,
-                ),
-                onTap: () {
-                  pin();
-                },
+              child: Container(
+                child: widget.child,
+                key: key,
               )
           );
         });
@@ -198,10 +190,12 @@ class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixi
 
 class PinController extends ChangeNotifier {
   // used to handle pin events on pinnable listview
-  int index;
+  int index; // the last pressed pin tile
+  int pinned; // the currently pinned tile original index
 
-  pin(int i) {
+  Future<void> pin(int i) async {
     index = i;
     notifyListeners();
+    await Future.delayed(Duration(milliseconds: 600));
   }
 }
