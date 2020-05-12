@@ -2,7 +2,7 @@
 A Flutter ListView widget that allows pinning a ListView child to the top of the list.
 ## Demo
 
-<img src="https://github.com/janhrastnik/assets/blob/master/demo2.gif" height="720px" hspace="10">
+<img src="https://media0.giphy.com/media/Ur8UWUz5RFyU28Sfb1/giphy.gif" height="720px" hspace="10">
 
 ## Getting Started
 
