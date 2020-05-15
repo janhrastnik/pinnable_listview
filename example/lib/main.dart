@@ -1,31 +1,52 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:pinnablelistview/pinnable_listview.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(ExampleApp());
 }
 
-class MyApp extends StatelessWidget {
-  PinController pinController = PinController();
-
+class ExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: 'Flutter Demo',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
+      home: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text("Example app"),
+            bottom: TabBar(
+              tabs: <Widget>[
+                Tab(text: "Example One"),
+                Tab(text: "Example Two")
+              ],
+            ),
+          ),
+          body: TabBarView(
+            children: <Widget>[
+              ExampleOne(),
+              ExampleTwo()
+            ],
+          ),
         ),
-        home: Scaffold(
-          body: PinnableListView(
-              pinController: pinController,
-              children: Iterable<int>.generate(5)
-                  .map((i) => MyTile(
-                        i: i,
-                        pinController: pinController,
-                      ))
-                  .toList()),
-        ));
+      ),
+    );
+  }
+}
+
+class ExampleOne extends StatelessWidget {
+  final PinController pinController = PinController();
+
+  @override
+  Widget build(BuildContext context) {
+    return PinnableListView(
+        pinController: pinController,
+        children: Iterable<int>.generate(5)
+            .map((i) => MyTile(
+          i: i,
+          pinController: pinController,
+        )).toList());
   }
 }
 
@@ -55,6 +76,44 @@ class MyTileState extends State<MyTile> {
           widget.pinController.pin(widget.i);
         },
       ),
+    );
+  }
+}
+
+class ExampleTwo extends StatelessWidget {
+  PinController pinController = PinController();
+
+  getRandomNum() {
+    return Random.secure().nextInt(50);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PinnableListView(
+      pinController: pinController,
+      children: Iterable.generate(100).map((i) {
+        double height = 50.0 + getRandomNum();
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Colors.black
+            )
+          ),
+          height: height,
+          child: Center(
+            child: ListTile(
+              leading: FlatButton(
+                color: Colors.blue,
+                child: Text("pin/unpin"),
+                onPressed: () {
+                  pinController.pin(i);
+                },
+              ),
+              title: Text(i.toString()),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

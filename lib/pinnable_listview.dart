@@ -16,7 +16,7 @@ class PinnableListView extends StatefulWidget {
 
 class PinnableListViewState extends State<PinnableListView> {
 
-  addData(Function animFunction, Function pinFunction, GlobalKey key) {
+  void addData(Function animFunction, Function pinFunction, GlobalKey key) {
     widget.globalKeys.add(key);
     widget.animFunctions.add(animFunction);
     widget.pinFunctions.add(pinFunction);
@@ -25,7 +25,7 @@ class PinnableListViewState extends State<PinnableListView> {
   Future<void> callFunctions(int index) async {
     if (widget.pinController.pinned == null || index != 0) {
       widget.animFunctions.sublist(0, index).forEach((function) {
-        double widgetHeight = widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
+        double widgetHeight = getWidgetHeight(index);
         function(widgetHeight, false);
       });
       await Future.delayed(Duration(milliseconds: 600));
@@ -38,10 +38,14 @@ class PinnableListViewState extends State<PinnableListView> {
         Widget moveWidget = widget.children[index];
         widget.children.removeAt(index);
         widget.children.insert(0, moveWidget);
+
+        GlobalKey moveKey = widget.globalKeys[index];
+        widget.globalKeys.removeAt(index);
+        widget.globalKeys.insert(0, moveKey);
       });
     } else {
       widget.animFunctions.sublist(1, widget.originalIndexes[index]+1).forEach((function) {
-        double widgetHeight = widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
+        double widgetHeight = getWidgetHeight(index);
         function(widgetHeight, true);
       });
       await Future.delayed(Duration(milliseconds: 600));
@@ -54,22 +58,29 @@ class PinnableListViewState extends State<PinnableListView> {
         Widget moveWidget = widget.children[0];
         widget.children.removeAt(0);
         widget.children.insert(moveIndex, moveWidget);
+
+        GlobalKey moveKey = widget.globalKeys[0];
+        widget.globalKeys.removeAt(0);
+        widget.globalKeys.insert(moveIndex, moveKey);
       });
     }
   }
 
-  getData(int index) {
-    double distance;
-    double widgetHeight = widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
+  double getData(int index) {
+    double distance = 0.0;
     if (widget.pinController.pinned == widget.originalIndexes[index]) {
-      distance = -widget.pinController.pinned * widgetHeight;
+      for (int i = 0; i < widget.pinController.pinned; i++) {
+        distance -= getWidgetHeight(i);
+      }
     } else {
-      distance = index * widgetHeight;
+      for (int i = 0; i < index; i++) {
+        distance += getWidgetHeight(i);
+      }
     }
-    return [distance, widget.originalIndexes[index]];
+    return distance;
   }
 
-  setPin() {
+  void setPin() {
     int moveIndex = widget.originalIndexes[widget.pinController.pinned];
     widget.originalIndexes.removeAt(widget.pinController.pinned);
     widget.originalIndexes.insert(0, moveIndex);
@@ -78,6 +89,10 @@ class PinnableListViewState extends State<PinnableListView> {
     widget.children.removeAt(widget.pinController.pinned);
     widget.children.insert(0, moveWidget);
   }
+
+  double getWidgetHeight(index) {
+    return widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
+}
 
   @override
   void initState() {
@@ -125,11 +140,15 @@ class PinWidget extends StatefulWidget {
   PinWidgetState createState() => PinWidgetState();
 }
 
-class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixin {
+class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   AnimationController animationController;
   var tween;
-  GlobalKey key;
+  GlobalKey globalKey = GlobalKey(); // needed to get widget height
+  PageStorageKey storageKey; // needed to keep widget alive during scrolling
   double distance = 0.0;
+
+  @override
+  bool get wantKeepAlive => true;
 
   move(double height, bool isPinned) {
     // called when a different pin widget gets pinned/unpinned, so that this one moves up or down
@@ -146,7 +165,7 @@ class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixi
 
   pin() {
     // called when this widget should get pinned/unpinned
-    distance = widget.getData(widget.index)[0];
+    distance = widget.getData(widget.index);
     widget.callFunctions(widget.index);
     animationController.forward();
     Future.delayed(Duration(milliseconds: 600)).then((_) {
@@ -157,7 +176,6 @@ class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixi
   @override
   void initState() {
     super.initState();
-    key = GlobalKey();
     animationController = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: 600)
@@ -169,22 +187,26 @@ class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixi
         parent: animationController,
         curve: Curves.ease
     ));
-    widget.addData(move, pin, key);
+    storageKey = PageStorageKey(widget.index);
+    widget.addData(move, pin, globalKey);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-        animation: animationController,
-        builder: (BuildContext context, Widget child) {
-          return Transform.translate(
-              offset: Offset(1.0, -distance * tween.value),
-              child: Container(
-                child: widget.child,
-                key: key,
-              )
-          );
-        });
+    return Container(
+      key: storageKey,
+      child: AnimatedBuilder(
+          key: globalKey,
+          animation: animationController,
+          builder: (BuildContext context, Widget child) {
+            return Transform.translate(
+                offset: Offset(1.0, -distance * tween.value),
+                child: Container(
+                  child: widget.child,
+                )
+            );
+          }),
+    );
   }
 }
 
