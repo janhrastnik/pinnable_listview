@@ -12,21 +12,23 @@ class ExampleApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: DefaultTabController(
-        length: 2,
+        length: 3,
         child: Scaffold(
           appBar: AppBar(
-            title: Text("Example app"),
+            title: Text("PinnableListView Examples"),
             bottom: TabBar(
               tabs: <Widget>[
                 Tab(text: "Example One"),
-                Tab(text: "Example Two")
+                Tab(text: "Example Two"),
+                Tab(text: "Example Three")
               ],
             ),
           ),
           body: TabBarView(
             children: <Widget>[
               ExampleOne(),
-              ExampleTwo()
+              ExampleTwo(),
+              ExampleThree()
             ],
           ),
         ),
@@ -36,6 +38,9 @@ class ExampleApp extends StatelessWidget {
 }
 
 class ExampleOne extends StatelessWidget {
+  /*
+    demonstrates how to highlight the pinned widget
+   */
   final PinController pinController = PinController();
 
   @override
@@ -61,6 +66,11 @@ class MyTile extends StatefulWidget {
 }
 
 class MyTileState extends State<MyTile> {
+  /*
+     create a class for your children in pinnablelistview, from where you can handle
+     the state of each child
+   */
+
   String text;
 
   @override
@@ -81,7 +91,10 @@ class MyTileState extends State<MyTile> {
 }
 
 class ExampleTwo extends StatelessWidget {
-  PinController pinController = PinController();
+  /*
+    an example that uses a larger list, with differing widget sizes
+   */
+  final PinController pinController = PinController();
 
   getRandomNum() {
     return Random.secure().nextInt(50);
@@ -112,6 +125,37 @@ class ExampleTwo extends StatelessWidget {
               title: Text(i.toString()),
             ),
           ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class ExampleThree extends StatelessWidget {
+  /*
+    an example that uses the initially pinned property
+   */
+  final PinController pinController = PinController();
+
+  getRandomNum() {
+    return Random.secure().nextInt(50);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PinnableListView(
+      initiallyPinned: 3,
+      pinController: pinController,
+      children: Iterable.generate(10).map((i) {
+        return ListTile(
+          leading: FlatButton(
+            color: Colors.blue,
+            child: Text("pin/unpin"),
+            onPressed: () {
+              pinController.pin(i);
+            },
+          ),
+          title: Text(i.toString()),
         );
       }).toList(),
     );

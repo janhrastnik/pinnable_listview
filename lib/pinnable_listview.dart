@@ -3,72 +3,74 @@ import 'package:flutter/material.dart';
 
 class PinnableListView extends StatefulWidget {
   final List<Widget> children;
-  List<GlobalKey> globalKeys = List();
-  List<Function> animFunctions = List();
-  List<Function> pinFunctions = List();
-  List<int> originalIndexes = List();
-  PinController pinController;
-  PinnableListView({Key key, @required this.children, @required this.pinController}) : super(key: key);
+  final int initiallyPinned;
+  final PinController pinController;
+  PinnableListView({Key key, @required this.children, @required this.pinController,
+  this.initiallyPinned}) : super(key: key);
 
   @override
   PinnableListViewState createState() => PinnableListViewState();
 }
 
 class PinnableListViewState extends State<PinnableListView> {
+  List<GlobalKey> globalKeys = List();
+  List<Function> animFunctions = List();
+  List<Function> pinFunctions = List();
+  List<int> originalIndexes = List();
 
   void addData(Function animFunction, Function pinFunction, GlobalKey key) {
-    widget.globalKeys.add(key);
-    widget.animFunctions.add(animFunction);
-    widget.pinFunctions.add(pinFunction);
+    globalKeys.add(key);
+    animFunctions.add(animFunction);
+    pinFunctions.add(pinFunction);
   }
 
   Future<void> callFunctions(int index) async {
     if (widget.pinController.pinned == null || index != 0) {
-      widget.animFunctions.sublist(0, index).forEach((function) {
+      animFunctions.sublist(0, index).forEach((function) {
         double widgetHeight = getWidgetHeight(index);
         function(widgetHeight, false);
       });
       await Future.delayed(Duration(milliseconds: 600));
       setState(() {
-        widget.pinController.pinned = widget.originalIndexes[index];
-        int moveIndex = widget.originalIndexes[index];
-        widget.originalIndexes.removeAt(index);
-        widget.originalIndexes.insert(0, moveIndex);
+        widget.pinController.pinned = originalIndexes[index];
+        int moveIndex = originalIndexes[index];
+        originalIndexes.removeAt(index);
+        originalIndexes.insert(0, moveIndex);
 
         Widget moveWidget = widget.children[index];
         widget.children.removeAt(index);
         widget.children.insert(0, moveWidget);
 
-        GlobalKey moveKey = widget.globalKeys[index];
-        widget.globalKeys.removeAt(index);
-        widget.globalKeys.insert(0, moveKey);
+        GlobalKey moveKey = globalKeys[index];
+        globalKeys.removeAt(index);
+        globalKeys.insert(0, moveKey);
       });
     } else {
-      widget.animFunctions.sublist(1, widget.originalIndexes[index]+1).forEach((function) {
+      animFunctions.sublist(1, originalIndexes[index]+1).forEach((function) {
         double widgetHeight = getWidgetHeight(index);
         function(widgetHeight, true);
       });
       await Future.delayed(Duration(milliseconds: 600));
       setState(() {
         widget.pinController.pinned = null;
-        int moveIndex = widget.originalIndexes[0];
-        widget.originalIndexes.removeAt(0);
-        widget.originalIndexes.insert(moveIndex, moveIndex);
+        int moveIndex = originalIndexes[0];
+        originalIndexes.removeAt(0);
+        originalIndexes.insert(moveIndex, moveIndex);
 
         Widget moveWidget = widget.children[0];
         widget.children.removeAt(0);
         widget.children.insert(moveIndex, moveWidget);
 
-        GlobalKey moveKey = widget.globalKeys[0];
-        widget.globalKeys.removeAt(0);
-        widget.globalKeys.insert(moveIndex, moveKey);
+        GlobalKey moveKey = globalKeys[0];
+        globalKeys.removeAt(0);
+        globalKeys.insert(moveIndex, moveKey);
       });
     }
   }
 
   double getData(int index) {
     double distance = 0.0;
-    if (widget.pinController.pinned == widget.originalIndexes[index]) {
+    if (widget.pinController.pinned == originalIndexes[index]) {
       for (int i = 0; i < widget.pinController.pinned; i++) {
         distance -= getWidgetHeight(i);
       }
@@ -81,29 +83,36 @@ class PinnableListViewState extends State<PinnableListView> {
   }
 
   void setPin() {
-    int moveIndex = widget.originalIndexes[widget.pinController.pinned];
-    widget.originalIndexes.removeAt(widget.pinController.pinned);
-    widget.originalIndexes.insert(0, moveIndex);
+    setState(() {
+      int moveIndex = originalIndexes[widget.pinController.pinned];
+      originalIndexes.removeAt(widget.pinController.pinned);
+      originalIndexes.insert(0, moveIndex);
 
-    Widget moveWidget = widget.children[widget.pinController.pinned];
-    widget.children.removeAt(widget.pinController.pinned);
-    widget.children.insert(0, moveWidget);
+      Widget moveWidget = widget.children[widget.pinController.pinned];
+      widget.children.removeAt(widget.pinController.pinned);
+      widget.children.insert(0, moveWidget);
+
+      GlobalKey moveKey = globalKeys[widget.pinController.pinned];
+      globalKeys.removeAt(widget.pinController.pinned);
+      globalKeys.insert(0, moveKey);
+    });
   }
 
   double getWidgetHeight(index) {
-    return widget.globalKeys[index].currentContext.findRenderObject().paintBounds.height;
+    return globalKeys[index].currentContext.findRenderObject().paintBounds.height;
 }
 
   @override
   void initState() {
     super.initState();
-    widget.originalIndexes = Iterable<int>.generate(widget.children.length).toList();
+    originalIndexes = Iterable<int>.generate(widget.children.length).toList();
     widget.pinController.addListener(() {
-      int trueIndex = widget.originalIndexes.indexOf(widget.pinController.index);
-      widget.pinFunctions[trueIndex]();
+      int trueIndex = originalIndexes.indexOf(widget.pinController.index);
+      pinFunctions[trueIndex]();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.pinController.pinned != null) {
+      if (widget.initiallyPinned != null) {
+        widget.pinController.pinned = widget.initiallyPinned;
         setPin();
       }
     });
@@ -193,6 +202,7 @@ class PinWidgetState extends State<PinWidget> with SingleTickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Container(
       key: storageKey,
       child: AnimatedBuilder(

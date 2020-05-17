@@ -17,3 +17,7 @@
 ## [0.1.3] - 13.5.2020
 
 * State of children is now persistent during scrolling
+
+## [0.1.4] - 17.5.2020
+
+* Added initiallyPinned property

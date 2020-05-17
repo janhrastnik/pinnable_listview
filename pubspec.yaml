@@ -1,6 +1,6 @@
 name: pinnable_listview
 description: A ListView widget capable of pinning a child to the top of the list.
-version: 0.1.3
+version: 0.1.4
 author: Jan Hrastnik
 homepage: https://github.com/janhrastnik/pinnable_listview
 
